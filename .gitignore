@@ -7,3 +7,16 @@ dist
 *.log
 *.tsbuildinfo
 .DS_Store
+
+# Business Central files from original repository template
+.vscode/
+.alcache/
+.alpackages/
+.snapshots/
+.output/
+*.app
+rad.json
+*.g.xlf
+*.bclicense
+*.flf
+TestResults.xml

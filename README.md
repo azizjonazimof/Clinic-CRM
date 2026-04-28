@@ -1,6 +1,6 @@
-# Medical CRM Platform
+# Clinic CRM
 
-This workspace contains the product instructions and initial implementation for a role-based medical CRM platform.
+Fullstack medical CRM platform with role-based portals for Super Admin, Clinic Admin, and Doctor users.
 
 Start with [INSTRUCTIONS.md](INSTRUCTIONS.md). The prompt groups live in [docs/prompts](docs/prompts).
 
@@ -10,7 +10,7 @@ The project was started in the requested order:
 
 1. Database design: `prisma/schema.prisma`
 2. Frontend pages and role layouts: `src/app`
-3. Backend/API contracts and handlers: `src/app/api`, `src/lib`
+3. Backend/API contracts and handlers: `src/app/api`, `src/lib`, `src/server`
 
 ## Local Setup
 
