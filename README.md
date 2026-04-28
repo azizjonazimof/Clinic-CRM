@@ -37,8 +37,9 @@ Set environment variables from `.env.production.example`, then run:
 
 ```bash
 npm ci
+npm run env:check
 npm run db:generate
-npx prisma migrate deploy
+npm run db:deploy
 npm run build
 npm run start
 ```
@@ -62,3 +63,11 @@ npm run lint
 npm run typecheck
 npm run build
 ```
+
+## Deployment Readiness
+
+- Health probe: `/api/health`
+- Readiness probe with database check: `/api/ready`
+- Runtime requires `DATABASE_URL` and `JWT_SECRET`.
+- Protected role portals redirect unauthenticated users to `/login`.
+- CI runs migration deploy, lint, typecheck, and production build on `main`.
