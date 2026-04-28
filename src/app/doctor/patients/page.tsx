@@ -1,25 +1,47 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, patients } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function DoctorPatientsPage() {
+export default async function DoctorPatientsPage() {
+  const user = await getCurrentUser();
+  
+  const doctor = await prisma.doctorProfile.findUnique({
+    where: { userId: user.id },
+    include: {
+      patients: {
+        orderBy: { updatedAt: "desc" }
+      }
+    }
+  });
+
+  if (!doctor) return <div>Doctor profile not found</div>;
+
+  const rows = doctor.patients.map(p => ({
+    id: p.id,
+    name: `${p.firstName} ${p.lastName}`,
+    phone: p.phone,
+    email: p.email || "N/A",
+    status: p.status
+  }));
+
   return (
     <ResourcePage
       role="DOCTOR"
       title="My Patients"
-      description="Patients assigned to or consulted by the logged-in doctor."
-      metrics={metrics.slice(0, 2)}
-      filters={["Status", "Date range"]}
+      description="List of all patients assigned to your care."
+      metrics={[
+        { label: "Active Patients", value: doctor.patients.length.toString(), tone: "neutral" }
+      ]}
       table={{
-        title: "My patients",
+        title: "Patient List",
         columns: [
-          { key: "name", label: "Name" },
+          { key: "name", label: "Patient" },
           { key: "phone", label: "Phone" },
-          { key: "lastVisit", label: "Last consultation" },
+          { key: "email", label: "Email" },
           { key: "status", label: "Status" }
         ],
-        rows: patients
+        rows: rows
       }}
     />
   );
 }
-

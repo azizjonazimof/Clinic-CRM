@@ -21,18 +21,9 @@ const nav: Record<Role, NavItem[]> = {
   ],
   CLINIC_ADMIN: [
     { label: "Dashboard", href: routes.clinicAdmin.dashboard, icon: Home },
-    { label: "Branch Details", href: routes.clinicAdmin.branchDetails, icon: Building2 },
+    { label: "Branches", href: routes.clinicAdmin.branches, icon: Building2 },
     { label: "Patients", href: routes.clinicAdmin.patients, icon: Users },
-    {
-      label: "Doctors",
-      href: routes.clinicAdmin.doctors,
-      icon: Stethoscope,
-      children: [
-        { label: "Doctor List", href: routes.clinicAdmin.doctors },
-        { label: "Doctor Detail", href: routes.clinicAdmin.doctorDetail },
-        { label: "Doctor Analytics", href: routes.clinicAdmin.doctorAnalytics }
-      ]
-    },
+    { label: "Doctors", href: routes.clinicAdmin.doctors, icon: Stethoscope },
     {
       label: "Services",
       href: routes.clinicAdmin.services,
@@ -49,8 +40,7 @@ const nav: Record<Role, NavItem[]> = {
       children: [
         { label: "Overview", href: routes.clinicAdmin.warehouse },
         { label: "Products", href: routes.clinicAdmin.products },
-        { label: "Suppliers", href: routes.clinicAdmin.suppliers },
-        { label: "Supplier Detail", href: routes.clinicAdmin.supplierDetail }
+        { label: "Suppliers", href: routes.clinicAdmin.suppliers }
       ]
     },
     {

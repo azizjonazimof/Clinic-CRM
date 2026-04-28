@@ -7,10 +7,10 @@ export default async function PaymentsPage() {
   const clinicId = user.clinicIds[0];
 
   const payments = await prisma.payment.findMany({
-    where: { clinicId },
+    where: { organizationId: clinicId },
     include: {
       patient: true,
-      branch: true
+      Branch: true
     },
     orderBy: { createdAt: "desc" }
   });
@@ -18,10 +18,10 @@ export default async function PaymentsPage() {
   const rows = payments.map(p => ({
     id: p.id,
     date: p.createdAt.toLocaleDateString(),
-    patient: `${p.patient.firstName} ${p.patient.lastName}`,
+    patient: p.patient ? `${p.patient.firstName} ${p.patient.lastName}` : "Walk-in",
     amount: `${p.amount.toString()} UZS`,
-    method: p.method,
-    status: "COMPLETED"
+    method: p.paymentMethod,
+    status: p.status
   }));
 
   return (

@@ -14,18 +14,14 @@ export const routes = {
   },
   clinicAdmin: {
     dashboard: "/clinic-admin/dashboard",
-    branchDetails: "/clinic-admin/branches/demo-branch",
+    branches: "/clinic-admin/branches",
     patients: "/clinic-admin/patients",
-    patientDetail: "/clinic-admin/patients/demo-patient",
     doctors: "/clinic-admin/doctors",
-    doctorDetail: "/clinic-admin/doctors/demo-doctor",
-    doctorAnalytics: "/clinic-admin/doctors/demo-doctor/analytics",
     services: "/clinic-admin/services",
     rooms: "/clinic-admin/services/rooms",
     warehouse: "/clinic-admin/warehouse",
     products: "/clinic-admin/warehouse/products",
     suppliers: "/clinic-admin/warehouse/suppliers",
-    supplierDetail: "/clinic-admin/warehouse/suppliers/demo-supplier",
     payments: "/clinic-admin/payments",
     invoices: "/clinic-admin/payments/invoices",
     createInvoice: "/clinic-admin/payments/invoices/create",
@@ -34,7 +30,6 @@ export const routes = {
   doctor: {
     dashboard: "/doctor/dashboard",
     patients: "/doctor/patients",
-    patientDetail: "/doctor/patients/demo-patient",
     addConsultation: "/doctor/consultations/create",
     goodsUsage: "/doctor/goods-usage",
     performance: "/doctor/performance"

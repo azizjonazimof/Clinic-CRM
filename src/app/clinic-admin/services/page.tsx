@@ -17,7 +17,7 @@ export default async function ServicesPage() {
     name: s.name,
     category: s.category?.name || "General",
     price: `${s.basePrice.toString()} UZS`,
-    duration: `${s.estimatedDuration || 0} min`,
+    duration: `${s.durationMinutes || 0} min`,
     status: s.isActive ? "ACTIVE" : "INACTIVE"
   }));
 
@@ -37,7 +37,7 @@ export default async function ServicesPage() {
         createFields: [
           { name: "name", label: "Service Name" },
           { name: "basePrice", label: "Base Price", type: "number" },
-          { name: "estimatedDuration", label: "Duration (min)", type: "number" }
+          { name: "durationMinutes", label: "Duration (min)", type: "number" }
         ],
         columns: [
           { key: "name", label: "Service" },

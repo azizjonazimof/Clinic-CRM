@@ -1,27 +1,46 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, products } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function GoodsUsagePage() {
+export default async function DoctorGoodsUsagePage() {
+  const user = await getCurrentUser();
+  
+  const movements = await prisma.stockMovement.findMany({
+    where: { 
+      type: "USAGE",
+      // Scoped to clinic/branches of the user
+      branch: { clinic: { users: { some: { userId: user.id } } } }
+    },
+    include: {
+      product: true,
+      patient: true
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const rows = movements.map(m => ({
+    id: m.id,
+    date: m.createdAt.toLocaleDateString(),
+    product: m.product.name,
+    quantity: m.quantity.toString(),
+    patient: m.patient ? `${m.patient.firstName} ${m.patient.lastName}` : "N/A"
+  }));
+
   return (
     <ResourcePage
       role="DOCTOR"
       title="Goods Usage"
-      description="Track goods used by the doctor during consultations."
-      metrics={metrics.slice(0, 3)}
-      filters={["Patient", "Product", "Date range"]}
+      description="Track medical supplies consumed during consultations."
       table={{
-        title: "Usage records",
-        actionLabel: "Record usage",
+        title: "Recent Consumption",
         columns: [
-          { key: "sku", label: "SKU" },
-          { key: "name", label: "Product" },
-          { key: "unit", label: "Unit" },
-          { key: "stock", label: "Quantity" },
-          { key: "status", label: "Status" }
+          { key: "date", label: "Date" },
+          { key: "product", label: "Product" },
+          { key: "quantity", label: "Qty" },
+          { key: "patient", label: "Patient" }
         ],
-        rows: products
+        rows: rows
       }}
     />
   );
 }
-

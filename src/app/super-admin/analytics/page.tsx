@@ -1,27 +1,44 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { clinics, metrics } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function SuperAdminAnalyticsPage() {
+export default async function SuperAdminAnalyticsPage() {
+  const user = await getCurrentUser();
+  
+  const clinics = await prisma.clinic.findMany({
+    include: {
+      _count: {
+        select: { patients: true, invoices: true }
+      }
+    }
+  });
+
+  const rows = clinics.map(c => ({
+    id: c.id,
+    name: c.name,
+    patients: c._count.patients.toString(),
+    invoices: c._count.invoices.toString(),
+    status: c.status
+  }));
+
   return (
     <ResourcePage
       role="SUPER_ADMIN"
       title="Platform Analytics"
-      description="Cross-clinic revenue, patient growth, and performance rankings."
-      metrics={metrics}
-      filters={["Date range", "Clinic", "Branch", "Region"]}
-      chartTitle="Revenue and consultation trend"
+      description="Detailed performance data across all clinic instances."
+      metrics={[
+        { label: "Growth Rate", value: "0%", tone: "neutral" }
+      ]}
       table={{
-        title: "Clinic performance ranking",
+        title: "Clinic Performance Overview",
         columns: [
           { key: "name", label: "Clinic" },
-          { key: "region", label: "Region" },
-          { key: "branches", label: "Branches" },
-          { key: "users", label: "Users" },
+          { key: "patients", label: "Total Patients" },
+          { key: "invoices", label: "Invoices Issued" },
           { key: "status", label: "Status" }
         ],
-        rows: clinics
+        rows: rows
       }}
     />
   );
 }
-

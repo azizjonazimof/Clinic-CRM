@@ -1,29 +1,63 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { invoices, metrics } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function PatientDetailPage() {
+type Context = {
+  params: Promise<{ patientId: string }>;
+};
+
+export default async function PatientDetailPage({ params }: Context) {
+  const { patientId } = await params;
+  const user = await getCurrentUser();
+
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+    include: {
+      invoices: {
+        orderBy: { createdAt: "desc" },
+        take: 10
+      },
+      encounters: {
+        orderBy: { createdAt: "desc" },
+        take: 10
+      }
+    }
+  });
+
+  if (!patient) return <div>Patient not found</div>;
+
+  const rows = patient.invoices.map(inv => ({
+    id: inv.id,
+    number: inv.invoiceNumber,
+    date: inv.createdAt.toLocaleDateString(),
+    total: `${inv.totalAmount.toString()} UZS`,
+    paid: `${inv.paidAmount.toString()} UZS`,
+    status: inv.status
+  }));
+
+  const metrics = [
+    { label: "Total Spent", value: `${patient.invoices.reduce((acc, inv) => acc + inv.paidAmount.toNumber(), 0).toLocaleString()} UZS`, tone: "success" },
+    { label: "Encounters", value: patient.encounters.length.toString(), tone: "neutral" }
+  ];
+
   return (
     <ResourcePage
       role="CLINIC_ADMIN"
-      title="Patient Detail"
-      description="Demographics, medical summary, consultations, invoices, payments, and goods usage."
-      metrics={metrics.slice(0, 3)}
-      filters={["History type", "Date range"]}
+      title={`${patient.firstName} ${patient.lastName}`}
+      description={`Patient record for ${patient.firstName}. Viewing billing history and clinical records.`}
+      metrics={metrics}
+      filters={["Invoices", "Encounters"]}
       table={{
-        title: "Patient invoices",
-        actionLabel: "Create invoice",
+        title: "Billing History",
         columns: [
-          { key: "number", label: "Invoice" },
-          { key: "doctor", label: "Doctor" },
+          { key: "number", label: "Invoice #" },
+          { key: "date", label: "Date" },
           { key: "total", label: "Total" },
           { key: "paid", label: "Paid" },
-          { key: "due", label: "Due" },
           { key: "status", label: "Status" }
         ],
-        rows: invoices
+        rows: rows
       }}
-      detailSections={["Demographics", "Medical summary", "Consultations", "Payments", "Goods usage", "Notes and files"]}
     />
   );
 }
-

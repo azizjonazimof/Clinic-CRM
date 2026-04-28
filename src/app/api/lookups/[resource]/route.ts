@@ -7,6 +7,7 @@ type Context = {
 };
 
 const resourceToModel: Record<string, string> = {
+  patients: "patient",
   branches: "branch",
   doctors: "doctorProfile",
   products: "product",
@@ -35,6 +36,15 @@ export async function GET(request: Request, { params }: Context) {
       data = doctors.map(d => ({
         id: d.id,
         name: `${d.staffProfile.firstName} ${d.staffProfile.lastName}`
+      }));
+    } else if (resource === "patients") {
+      const patients = await prisma.patient.findMany({
+        where: { clinicId },
+        select: { id: true, firstName: true, lastName: true }
+      });
+      data = patients.map(p => ({
+        id: p.id,
+        name: `${p.firstName} ${p.lastName}`
       }));
     } else {
       data = await (prisma as any)[model].findMany({

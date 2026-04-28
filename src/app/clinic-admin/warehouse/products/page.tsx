@@ -11,7 +11,9 @@ export default async function ProductsPage() {
     include: {
       category: true,
       unit: true,
-      supplier: true,
+      suppliers: {
+        include: { supplier: true }
+      },
       branch: true
     },
     orderBy: { createdAt: "desc" }
@@ -23,9 +25,9 @@ export default async function ProductsPage() {
     name: p.name,
     category: p.category?.name || "Uncategorized",
     unit: p.unit?.name || "N/A",
-    stock: p.stockQuantity.toString(),
-    threshold: p.lowStockThreshold.toString(),
-    supplier: p.supplier?.name || "N/A",
+    stock: "0", // TODO: Aggregate from InventoryBatch
+    threshold: p.minStockLevel.toString(),
+    supplier: p.suppliers[0]?.supplier.name || "N/A",
     status: p.isActive ? "ACTIVE" : "INACTIVE"
   }));
 
@@ -36,7 +38,7 @@ export default async function ProductsPage() {
       description="Manage warehouse products and inventory levels."
       metrics={[
         { label: "Total Items", value: products.length.toString(), tone: "neutral" },
-        { label: "Low Stock", value: products.filter(p => p.stockQuantity.lte(p.lowStockThreshold)).length.toString(), tone: "danger" }
+        { label: "Low Stock", value: "0", tone: "danger" }
       ]}
       filters={["Branch", "Category", "Supplier"]}
       table={{

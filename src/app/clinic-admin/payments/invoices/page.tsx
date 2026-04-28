@@ -7,7 +7,7 @@ export default async function InvoicesPage() {
   const clinicId = user.clinicIds[0];
 
   const invoices = await prisma.invoice.findMany({
-    where: { clinicId },
+    where: { organizationId: clinicId },
     include: {
       patient: true,
       branch: true
@@ -17,7 +17,7 @@ export default async function InvoicesPage() {
 
   const rows = invoices.map(inv => ({
     id: inv.id,
-    number: inv.number,
+    number: inv.invoiceNumber,
     patient: `${inv.patient.firstName} ${inv.patient.lastName}`,
     total: `${inv.totalAmount.toString()} UZS`,
     paid: `${inv.paidAmount.toString()} UZS`,

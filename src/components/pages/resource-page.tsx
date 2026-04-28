@@ -175,7 +175,8 @@ export function ResourcePage<T extends object>({
                           type={field.type || "text"}
                           value={formData[field.name] || ""}
                           onChange={(e) => {
-                            setFormData({...formData, [field.name]: e.target.value});
+                            const val = field.type === "number" ? (e.target.value === "" ? "" : Number(e.target.value)) : e.target.value;
+                            setFormData({...formData, [field.name]: val});
                             if (fieldErrors[field.name]) setFieldErrors({...fieldErrors, [field.name]: ""});
                           }}
                         />

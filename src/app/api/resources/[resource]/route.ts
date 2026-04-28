@@ -66,8 +66,22 @@ export async function POST(request: Request, { params }: Context) {
         });
         break;
       }
-      case "services":
+      case "services": {
+        const branch = await prisma.branch.findFirst({ where: { clinicId } });
         result = await prisma.service.create({
+          data: {
+            name: body.name,
+            basePrice: body.basePrice,
+            durationMinutes: body.durationMinutes || body.estimatedDuration,
+            organizationId: clinicId,
+            branchId: body.branchId || branch?.id || null,
+            isActive: true
+          }
+        });
+        break;
+      }
+      case "products":
+        result = await prisma.product.create({
           data: {
             ...body,
             organizationId: clinicId,
@@ -75,12 +89,12 @@ export async function POST(request: Request, { params }: Context) {
           }
         });
         break;
-      case "products":
-        result = await prisma.product.create({
+      case "branches":
+        result = await prisma.branch.create({
           data: {
             ...body,
-            organizationId: clinicId,
-            isActive: true
+            clinicId,
+            status: "ACTIVE"
           }
         });
         break;

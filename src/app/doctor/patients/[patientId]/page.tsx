@@ -1,26 +1,53 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, products } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function DoctorPatientDetailPage() {
+type Context = {
+  params: Promise<{ patientId: string }>;
+};
+
+export default async function DoctorPatientDetailPage({ params }: Context) {
+  const { patientId } = await params;
+  
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+    include: {
+      encounters: {
+        include: { services: { include: { service: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 20
+      }
+    }
+  });
+
+  if (!patient) return <div>Patient not found</div>;
+
+  const rows = patient.encounters.map(e => ({
+    id: e.id,
+    date: e.createdAt.toLocaleDateString(),
+    type: e.encounterType,
+    diagnosis: e.diagnosisSummary || "N/A",
+    status: e.status
+  }));
+
   return (
     <ResourcePage
       role="DOCTOR"
-      title="Patient Detail"
-      description="Doctor-authorized patient profile, medical summary, consultation history, and goods usage."
-      metrics={metrics.slice(0, 2)}
-      filters={["Consultations", "Goods usage", "Date range"]}
+      title={`Clinical Record: ${patient.firstName} ${patient.lastName}`}
+      description={`Viewing medical history, diagnosis summaries, and clinical encounters for ${patient.firstName}.`}
+      metrics={[
+        { label: "Total Visits", value: patient.encounters.length.toString(), tone: "neutral" }
+      ]}
       table={{
-        title: "Goods used",
+        title: "Clinical History",
         columns: [
-          { key: "sku", label: "SKU" },
-          { key: "name", label: "Product" },
-          { key: "unit", label: "Unit" },
-          { key: "stock", label: "Quantity" }
+          { key: "date", label: "Date" },
+          { key: "type", label: "Type" },
+          { key: "diagnosis", label: "Diagnosis Summary" },
+          { key: "status", label: "Status" }
         ],
-        rows: products
+        rows: rows
       }}
-      detailSections={["Demographics", "Medical summary", "Consultation history", "Notes"]}
     />
   );
 }
-
