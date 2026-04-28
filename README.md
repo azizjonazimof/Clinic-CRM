@@ -18,8 +18,13 @@ Install Node.js, then run:
 
 ```bash
 npm install
-docker compose up -d postgres
 cp .env.example .env
+npm run db:start
+```
+
+In a second terminal:
+
+```bash
 npm run db:generate
 npm run db:migrate
 npm run db:seed

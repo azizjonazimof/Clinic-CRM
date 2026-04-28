@@ -7,6 +7,7 @@ dist
 *.log
 *.tsbuildinfo
 .DS_Store
+.local-db
 
 # Business Central files from original repository template
 .vscode/
