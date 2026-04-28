@@ -1,7 +1,20 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { invoices, metrics } from "@/data/mock";
+import { getCurrentUser } from "@/server/session";
+import { getClinicDashboardMetrics, getRecentInvoices } from "@/lib/services/dashboard";
 
-export default function ClinicAdminDashboardPage() {
+export default async function ClinicAdminDashboardPage() {
+  const user = await getCurrentUser();
+  const clinicId = user.clinicIds[0]; // Assuming primary clinic
+
+  if (!clinicId) {
+    return <div>No clinic assigned</div>;
+  }
+
+  const [metrics, invoices] = await Promise.all([
+    getClinicDashboardMetrics(clinicId),
+    getRecentInvoices(clinicId)
+  ]);
+
   return (
     <ResourcePage
       role="CLINIC_ADMIN"

@@ -1,17 +1,54 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, products } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const user = await getCurrentUser();
+  const clinicId = user.clinicIds[0];
+
+  const products = await prisma.product.findMany({
+    where: { organizationId: clinicId },
+    include: {
+      category: true,
+      unit: true,
+      supplier: true,
+      branch: true
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const rows = products.map(p => ({
+    id: p.id,
+    sku: p.sku,
+    name: p.name,
+    category: p.category?.name || "Uncategorized",
+    unit: p.unit?.name || "N/A",
+    stock: p.stockQuantity.toString(),
+    threshold: p.lowStockThreshold.toString(),
+    supplier: p.supplier?.name || "N/A",
+    status: p.isActive ? "ACTIVE" : "INACTIVE"
+  }));
+
   return (
     <ResourcePage
       role="CLINIC_ADMIN"
-      title="Products"
-      description="Manage warehouse products and inventory."
-      metrics={metrics.slice(0, 3)}
-      filters={["Branch", "Category", "Supplier", "Status"]}
+      title="Inventory Products"
+      description="Manage warehouse products and inventory levels."
+      metrics={[
+        { label: "Total Items", value: products.length.toString(), tone: "neutral" },
+        { label: "Low Stock", value: products.filter(p => p.stockQuantity.lte(p.lowStockThreshold)).length.toString(), tone: "danger" }
+      ]}
+      filters={["Branch", "Category", "Supplier"]}
       table={{
-        title: "Products",
-        actionLabel: "Create product",
+        title: "Product Catalog",
+        actionLabel: "Add Product",
+        createEndpoint: "/api/resources/products",
+        createFields: [
+          { name: "name", label: "Product Name" },
+          { name: "sku", label: "SKU / Code" },
+          { name: "productType", label: "Type", options: ["consumable", "medication", "equipment"] },
+          { name: "purchasePrice", label: "Purchase Price", type: "number" }
+        ],
         columns: [
           { key: "sku", label: "SKU" },
           { key: "name", label: "Name" },
@@ -22,10 +59,8 @@ export default function ProductsPage() {
           { key: "supplier", label: "Supplier" },
           { key: "status", label: "Status" }
         ],
-        rows: products
+        rows: rows
       }}
-      detailSections={["Stock adjustment modal", "Deactivate confirmation"]}
     />
   );
 }
-

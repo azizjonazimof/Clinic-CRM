@@ -1,28 +1,54 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, products } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function WarehousePage() {
+export default async function WarehouseDashboardPage() {
+  const user = await getCurrentUser();
+  const clinicId = user.clinicIds[0];
+
+  const [products, stockMovements] = await Promise.all([
+    prisma.product.findMany({
+      where: { organizationId: clinicId },
+      orderBy: { stockQuantity: "asc" },
+      take: 5
+    }),
+    prisma.stockMovement.findMany({
+      where: { branch: { clinicId } },
+      include: { product: true },
+      orderBy: { createdAt: "desc" },
+      take: 10
+    })
+  ]);
+
+  const rows = stockMovements.map(m => ({
+    id: m.id,
+    date: m.createdAt.toLocaleDateString(),
+    product: m.product.name,
+    quantity: m.quantity.toString(),
+    type: m.type,
+    note: m.note || "N/A"
+  }));
+
   return (
     <ResourcePage
       role="CLINIC_ADMIN"
-      title="Warehouse"
-      description="Stock value, low stock, expiring products, recent movements, and top-used goods."
-      metrics={metrics}
-      filters={["Branch", "Product category", "Date range"]}
-      chartTitle="Stock movement trend"
+      title="Warehouse Dashboard"
+      description="Overall inventory status, stock movements, and alerts."
+      metrics={[
+        { label: "Critical Stock", value: products.filter(p => p.stockQuantity.lte(p.lowStockThreshold)).length.toString(), tone: "danger" }
+      ]}
+      filters={["Today", "Branch"]}
       table={{
-        title: "Low stock products",
+        title: "Recent Stock Movements",
         columns: [
-          { key: "sku", label: "SKU" },
-          { key: "name", label: "Product" },
-          { key: "category", label: "Category" },
-          { key: "stock", label: "Stock" },
-          { key: "threshold", label: "Threshold" },
-          { key: "supplier", label: "Supplier" }
+          { key: "date", label: "Date" },
+          { key: "product", label: "Product" },
+          { key: "quantity", label: "Qty" },
+          { key: "type", label: "Type" },
+          { key: "note", label: "Note" }
         ],
-        rows: products
+        rows: rows
       }}
     />
   );
 }
-

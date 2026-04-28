@@ -10,9 +10,10 @@ type DataTableProps<T extends object> = {
   columns: { key: keyof T | string; label: string }[];
   rows: T[];
   actions?: React.ReactNode;
+  onEdit?: (row: T) => void;
 };
 
-export function DataTable<T extends object>({ title, description, columns, rows, actions }: DataTableProps<T>) {
+export function DataTable<T extends object>({ title, description, columns, rows, actions, onEdit }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -46,6 +47,7 @@ export function DataTable<T extends object>({ title, description, columns, rows,
                   {column.label}
                 </th>
               ))}
+              {onEdit && <th className="w-10 bg-slate-50"></th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -59,6 +61,16 @@ export function DataTable<T extends object>({ title, description, columns, rows,
                         {String(record[String(column.key)] ?? "")}
                       </td>
                     ))}
+                    {onEdit && (
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <button 
+                          onClick={() => onEdit(row)}
+                          className="text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                          Edit
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })

@@ -1,29 +1,51 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { clinics, metrics } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function SuperAdminClinicsPage() {
+export default async function SuperAdminClinicsPage() {
+  const user = await getCurrentUser();
+  
+  const clinics = await prisma.clinic.findMany({
+    orderBy: { createdAt: "desc" }
+  });
+
+  const rows = clinics.map(c => ({
+    id: c.id,
+    name: c.name,
+    legalName: c.legalName || "N/A",
+    phone: c.phone || "N/A",
+    email: c.email || "N/A",
+    status: c.status
+  }));
+
   return (
     <ResourcePage
       role="SUPER_ADMIN"
       title="Clinics"
-      description="Create, edit, suspend, and inspect clinics."
-      metrics={metrics.slice(0, 3)}
-      filters={["Status", "Region", "Subscription"]}
+      description="Manage all medical organizations and clinic instances."
+      metrics={[
+        { label: "Total Clinics", value: clinics.length.toString(), tone: "neutral" }
+      ]}
       table={{
-        title: "Clinics",
-        actionLabel: "Create clinic",
-        columns: [
-          { key: "name", label: "Name" },
-          { key: "owner", label: "Owner" },
-          { key: "branches", label: "Branches" },
-          { key: "users", label: "Users" },
-          { key: "status", label: "Status" },
-          { key: "createdAt", label: "Created" }
+        title: "Global Organizations",
+        actionLabel: "Add Clinic",
+        createEndpoint: "/api/resources/clinics",
+        createFields: [
+          { name: "name", label: "Clinic Name" },
+          { name: "legalName", label: "Legal Entity Name" },
+          { name: "email", label: "Contact Email" },
+          { name: "phone", label: "Phone" },
+          { name: "status", label: "Status", options: ["ACTIVE", "INACTIVE", "SUSPENDED"] }
         ],
-        rows: clinics
+        columns: [
+          { key: "name", label: "Clinic" },
+          { key: "legalName", label: "Legal Name" },
+          { key: "phone", label: "Phone" },
+          { key: "email", label: "Email" },
+          { key: "status", label: "Status" }
+        ],
+        rows: rows
       }}
-      detailSections={["Create clinic modal", "Suspend confirmation"]}
     />
   );
 }
-

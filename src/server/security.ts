@@ -35,6 +35,7 @@ export async function signAccessToken(user: SessionUser) {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
+    permissions: user.permissions,
     clinicIds: user.clinicIds,
     branchIds: user.branchIds
   })
@@ -53,6 +54,7 @@ export async function verifyAccessToken(token: string): Promise<SessionUser> {
     firstName: String(payload.firstName),
     lastName: String(payload.lastName),
     role: payload.role as Role,
+    permissions: Array.isArray(payload.permissions) ? payload.permissions.map(String) : [],
     clinicIds: Array.isArray(payload.clinicIds) ? payload.clinicIds.map(String) : [],
     branchIds: Array.isArray(payload.branchIds) ? payload.branchIds.map(String) : []
   };

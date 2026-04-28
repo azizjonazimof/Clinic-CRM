@@ -21,6 +21,19 @@ export async function buildSessionUser(userId: string): Promise<SessionUser> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
+      organizationUsers: {
+        include: {
+          role: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      },
       clinicAssignments: true,
       branchAssignments: true
     }
@@ -30,14 +43,27 @@ export async function buildSessionUser(userId: string): Promise<SessionUser> {
     throw new Error("Unauthorized");
   }
 
+  // Determine the primary role for the session (simplified: take the first one or use legacy if none)
+  const primaryOrgUser = user.organizationUsers[0];
+  const roleCode = (primaryOrgUser?.role.code || user.role || "USER") as any;
+  const permissions = primaryOrgUser?.role.permissions.map(rp => rp.permission.code) || [];
+
+  // Aggregate clinic and branch IDs from all assignment types
+  const clinicIds = Array.from(new Set([
+    ...user.organizationUsers.map(ou => ou.organizationId),
+    ...user.clinicAssignments.map(ca => ca.clinicId)
+  ]));
+
+  const branchIds = user.branchAssignments.map(ba => ba.branchId);
+
   return {
     id: user.id,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    role: user.role,
-    clinicIds: user.clinicAssignments.map((assignment) => assignment.clinicId),
-    branchIds: user.branchAssignments.map((assignment) => assignment.branchId)
+    role: roleCode,
+    permissions: permissions,
+    clinicIds,
+    branchIds
   };
 }
-

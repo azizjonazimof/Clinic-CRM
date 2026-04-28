@@ -23,6 +23,7 @@ export type SessionUser = {
   firstName: string;
   lastName: string;
   role: Role;
+  permissions: string[];
   clinicIds: string[];
   branchIds: string[];
 };

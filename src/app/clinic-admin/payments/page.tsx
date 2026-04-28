@@ -1,29 +1,49 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, payments } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function PaymentsPage() {
+export default async function PaymentsPage() {
+  const user = await getCurrentUser();
+  const clinicId = user.clinicIds[0];
+
+  const payments = await prisma.payment.findMany({
+    where: { clinicId },
+    include: {
+      patient: true,
+      branch: true
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const rows = payments.map(p => ({
+    id: p.id,
+    date: p.createdAt.toLocaleDateString(),
+    patient: `${p.patient.firstName} ${p.patient.lastName}`,
+    amount: `${p.amount.toString()} UZS`,
+    method: p.method,
+    status: "COMPLETED"
+  }));
+
   return (
     <ResourcePage
       role="CLINIC_ADMIN"
       title="Payments"
-      description="Track patient payments and balances."
-      metrics={metrics.slice(0, 3)}
-      filters={["Branch", "Method", "Status", "Date range"]}
+      description="Track all incoming and outgoing financial transactions."
+      metrics={[
+        { label: "Total Revenue", value: payments.reduce((acc, p) => acc + p.amount.toNumber(), 0).toString() + " UZS", tone: "success" }
+      ]}
+      filters={["Method", "Status"]}
       table={{
-        title: "Payments",
-        actionLabel: "Record payment",
+        title: "Transaction History",
         columns: [
+          { key: "date", label: "Date" },
           { key: "patient", label: "Patient" },
-          { key: "invoice", label: "Invoice" },
           { key: "amount", label: "Amount" },
           { key: "method", label: "Method" },
-          { key: "date", label: "Date" },
-          { key: "status", label: "Status" },
-          { key: "branch", label: "Branch" }
+          { key: "status", label: "Status" }
         ],
-        rows: payments
+        rows: rows
       }}
     />
   );
 }
-

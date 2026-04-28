@@ -1,27 +1,50 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { metrics, rooms } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function RoomsPage() {
+export default async function RoomsPage() {
+  const user = await getCurrentUser();
+  const clinicId = user.clinicIds[0];
+
+  const rooms = await prisma.room.findMany({
+    where: { branch: { clinicId } },
+    include: { branch: true },
+    orderBy: { name: "asc" }
+  });
+
+  const rows = rooms.map(r => ({
+    id: r.id,
+    name: r.name,
+    branch: r.branch.name,
+    type: r.type || "Examination",
+    status: r.status
+  }));
+
   return (
     <ResourcePage
       role="CLINIC_ADMIN"
-      title="Rooms"
-      description="Manage rooms under the Services module."
-      metrics={metrics.slice(0, 2)}
-      filters={["Branch", "Room type", "Status"]}
+      title="Clinic Rooms"
+      description="Manage examination rooms, theaters, and offices."
+      metrics={[
+        { label: "Total Rooms", value: rooms.length.toString(), tone: "neutral" }
+      ]}
+      filters={["Branch", "Status"]}
       table={{
-        title: "Rooms",
-        actionLabel: "Create room",
+        title: "Room Directory",
+        actionLabel: "Add Room",
+        createEndpoint: "/api/resources/rooms",
+        createFields: [
+          { name: "name", label: "Room Name/Number" },
+          { name: "type", label: "Room Type", options: ["Examination", "Surgery", "Office", "Lab"] }
+        ],
         columns: [
-          { key: "branch", label: "Branch" },
           { key: "name", label: "Room" },
+          { key: "branch", label: "Branch" },
           { key: "type", label: "Type" },
-          { key: "services", label: "Services" },
           { key: "status", label: "Status" }
         ],
-        rows: rooms
+        rows: rows
       }}
     />
   );
 }
-

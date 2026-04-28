@@ -1,17 +1,43 @@
 import { ResourcePage } from "@/components/pages/resource-page";
-import { clinics, metrics } from "@/data/mock";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
-export default function SuperAdminDashboardPage() {
+export default async function SuperAdminDashboardPage() {
+  const user = await getCurrentUser();
+  
+  const [clinics, users, appointments] = await Promise.all([
+    prisma.clinic.findMany({
+      take: 10,
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.user.count(),
+    prisma.appointment.count()
+  ]);
+
+  const rows = clinics.map(c => ({
+    id: c.id,
+    name: c.name,
+    owner: "N/A", // Owner logic could be added later
+    region: c.region || "Tashkent",
+    branches: "1", // Simplified
+    status: c.status
+  }));
+
+  const metrics = [
+    { label: "Total Clinics", value: clinics.length.toString(), tone: "neutral" },
+    { label: "Platform Users", value: users.toString(), tone: "success" },
+    { label: "Total Appointments", value: appointments.toString(), tone: "neutral" }
+  ];
+
   return (
     <ResourcePage
       role="SUPER_ADMIN"
       title="Platform Dashboard"
       description="Platform-wide clinic, branch, user, and revenue overview."
       metrics={metrics}
-      filters={["Date range", "Clinic status", "Region"]}
-      chartTitle="Clinic growth and activity"
+      filters={["Clinic status"]}
       table={{
-        title: "Recent clinics",
+        title: "Recent Clinics",
         columns: [
           { key: "name", label: "Clinic" },
           { key: "owner", label: "Owner" },
@@ -19,10 +45,8 @@ export default function SuperAdminDashboardPage() {
           { key: "branches", label: "Branches" },
           { key: "status", label: "Status" }
         ],
-        rows: clinics
+        rows: rows
       }}
-      detailSections={["Alerts", "Recent activity"]}
     />
   );
 }
-

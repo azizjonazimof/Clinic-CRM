@@ -1,20 +1,50 @@
-import { ok } from "@/lib/api-response";
-import { branches, doctors, products, services, sources } from "@/data/mock";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/session";
 
 type Context = {
   params: Promise<{ resource: string }>;
 };
 
-export async function GET(_: Request, context: Context) {
-  const { resource } = await context.params;
-  const lookups = {
-    branches,
-    doctors,
-    services,
-    products,
-    sources
-  };
+const resourceToModel: Record<string, string> = {
+  branches: "branch",
+  doctors: "doctorProfile",
+  products: "product",
+  services: "service",
+  sources: "source",
+  suppliers: "supplier"
+};
 
-  return ok(lookups[resource as keyof typeof lookups] ?? []);
+export async function GET(request: Request, { params }: Context) {
+  try {
+    const user = await getCurrentUser();
+    const { resource } = await params;
+    const model = resourceToModel[resource];
+    const clinicId = user.clinicIds[0];
+
+    if (!model) return NextResponse.json({ error: "Unsupported resource" }, { status: 400 });
+    if (!clinicId) return NextResponse.json({ error: "No clinic assigned" }, { status: 403 });
+
+    let data;
+
+    if (resource === "doctors") {
+      const doctors = await prisma.doctorProfile.findMany({
+        where: { branch: { clinicId } },
+        include: { staffProfile: true }
+      });
+      data = doctors.map(d => ({
+        id: d.id,
+        name: `${d.staffProfile.firstName} ${d.staffProfile.lastName}`
+      }));
+    } else {
+      data = await (prisma as any)[model].findMany({
+        where: { OR: [{ clinicId }, { organizationId: clinicId }] },
+        select: { id: true, name: true }
+      });
+    }
+
+    return NextResponse.json({ data });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
-
