@@ -1,0 +1,475 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  CLINIC_ADMIN
+  DOCTOR
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum EntityStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum PatientStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum ConsultationStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  INSURANCE
+  OTHER
+}
+
+enum StockMovementType {
+  PURCHASE
+  USAGE
+  ADJUSTMENT
+  RETURN
+  EXPIRED
+}
+
+enum InvoiceItemType {
+  SERVICE
+  PRODUCT
+  CUSTOM
+}
+
+model User {
+  id                  String                 @id @default(cuid())
+  email               String                 @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  phone               String?
+  role                Role
+  status              UserStatus             @default(ACTIVE)
+  lastLoginAt         DateTime?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  clinicAssignments   UserClinicAssignment[]
+  branchAssignments   UserBranchAssignment[]
+  doctorProfile       DoctorProfile?
+  auditLogs           AuditLog[]             @relation("AuditActor")
+  consultations       Consultation[]         @relation("ConsultationDoctor")
+  goodsUsage          StockMovement[]        @relation("StockMovementDoctor")
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
+}
+
+model Clinic {
+  id          String                 @id @default(cuid())
+  name        String
+  legalName   String?
+  phone       String?
+  email       String?
+  address     String?
+  region      String?
+  status      EntityStatus           @default(ACTIVE)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  branches    Branch[]
+  assignments UserClinicAssignment[]
+  patients    Patient[]
+  suppliers   Supplier[]
+  invoices    Invoice[]
+  payments    Payment[]
+  sources     Source[]
+  auditLogs   AuditLog[]
+}
+
+model Branch {
+  id          String                 @id @default(cuid())
+  clinicId    String
+  name        String
+  address     String
+  city        String?
+  region      String?
+  phone       String?
+  status      EntityStatus           @default(ACTIVE)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  clinic      Clinic                 @relation(fields: [clinicId], references: [id])
+  assignments UserBranchAssignment[]
+  doctors     DoctorProfile[]
+  patients    Patient[]
+  services    Service[]
+  rooms       Room[]
+  products    Product[]
+  invoices    Invoice[]
+  payments    Payment[]
+  stockMoves  StockMovement[]
+
+  @@index([clinicId])
+}
+
+model UserClinicAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  clinicId  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+
+  @@unique([userId, clinicId])
+  @@index([clinicId])
+}
+
+model UserBranchAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  branchId  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  @@unique([userId, branchId])
+  @@index([branchId])
+}
+
+model DoctorProfile {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  branchId       String
+  specialty      String
+  licenseNumber  String?
+  bio            String?
+  status         EntityStatus   @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id])
+  branch         Branch         @relation(fields: [branchId], references: [id])
+  patients       Patient[]
+  consultations  Consultation[]
+  invoices       Invoice[]
+
+  @@index([branchId])
+}
+
+model Patient {
+  id                  String           @id @default(cuid())
+  clinicId            String
+  branchId            String
+  assignedDoctorId    String?
+  sourceId            String?
+  firstName           String
+  lastName            String
+  phone               String
+  email               String?
+  birthDate           DateTime?
+  gender              String?
+  address             String?
+  medicalSummary      String?
+  status              PatientStatus    @default(ACTIVE)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  clinic              Clinic           @relation(fields: [clinicId], references: [id])
+  branch              Branch           @relation(fields: [branchId], references: [id])
+  assignedDoctor      DoctorProfile?   @relation(fields: [assignedDoctorId], references: [id])
+  source              Source?          @relation(fields: [sourceId], references: [id])
+  consultations       Consultation[]
+  invoices            Invoice[]
+  payments            Payment[]
+  stockMoves          StockMovement[]
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([assignedDoctorId])
+  @@index([sourceId])
+}
+
+model Consultation {
+  id              String             @id @default(cuid())
+  patientId       String
+  doctorProfileId String
+  doctorUserId    String
+  complaints      String?
+  diagnosis       String?
+  treatmentPlan   String?
+  notes           String?
+  followUpAt      DateTime?
+  status          ConsultationStatus @default(DRAFT)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  patient         Patient            @relation(fields: [patientId], references: [id])
+  doctorProfile   DoctorProfile      @relation(fields: [doctorProfileId], references: [id])
+  doctorUser      User               @relation("ConsultationDoctor", fields: [doctorUserId], references: [id])
+  stockMoves      StockMovement[]
+
+  @@index([patientId])
+  @@index([doctorProfileId])
+  @@index([doctorUserId])
+}
+
+model Service {
+  id          String       @id @default(cuid())
+  branchId    String
+  name        String
+  category    String?
+  price       Decimal      @db.Decimal(12, 2)
+  durationMin Int?
+  status      EntityStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  branch      Branch       @relation(fields: [branchId], references: [id])
+  rooms       RoomService[]
+  invoiceItems InvoiceItem[]
+
+  @@index([branchId])
+}
+
+model Room {
+  id        String       @id @default(cuid())
+  branchId  String
+  name      String
+  type      String?
+  status    EntityStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  branch    Branch       @relation(fields: [branchId], references: [id])
+  services  RoomService[]
+
+  @@index([branchId])
+}
+
+model RoomService {
+  id        String  @id @default(cuid())
+  roomId    String
+  serviceId String
+  room      Room    @relation(fields: [roomId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@unique([roomId, serviceId])
+}
+
+model Product {
+  id                String          @id @default(cuid())
+  branchId          String
+  supplierId        String?
+  sku               String
+  name              String
+  category          String?
+  unit              String
+  stockQuantity     Decimal         @default(0) @db.Decimal(12, 2)
+  lowStockThreshold Decimal         @default(0) @db.Decimal(12, 2)
+  expiresAt         DateTime?
+  status            EntityStatus    @default(ACTIVE)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  branch            Branch          @relation(fields: [branchId], references: [id])
+  supplier          Supplier?       @relation(fields: [supplierId], references: [id])
+  stockMoves        StockMovement[]
+  invoiceItems      InvoiceItem[]
+
+  @@unique([branchId, sku])
+  @@index([branchId])
+  @@index([supplierId])
+}
+
+model StockMovement {
+  id             String            @id @default(cuid())
+  branchId       String
+  productId      String
+  patientId      String?
+  consultationId String?
+  doctorUserId   String?
+  type           StockMovementType
+  quantity       Decimal           @db.Decimal(12, 2)
+  note           String?
+  createdAt      DateTime          @default(now())
+  branch         Branch            @relation(fields: [branchId], references: [id])
+  product        Product           @relation(fields: [productId], references: [id])
+  patient        Patient?          @relation(fields: [patientId], references: [id])
+  consultation   Consultation?     @relation(fields: [consultationId], references: [id])
+  doctorUser     User?             @relation("StockMovementDoctor", fields: [doctorUserId], references: [id])
+
+  @@index([branchId])
+  @@index([productId])
+  @@index([patientId])
+  @@index([doctorUserId])
+}
+
+model Supplier {
+  id        String       @id @default(cuid())
+  clinicId  String
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  balance   Decimal      @default(0) @db.Decimal(12, 2)
+  status    EntityStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  clinic    Clinic       @relation(fields: [clinicId], references: [id])
+  products  Product[]
+
+  @@index([clinicId])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  clinicId        String
+  branchId        String
+  patientId       String
+  doctorProfileId String?
+  number          String        @unique
+  subtotal        Decimal       @default(0) @db.Decimal(12, 2)
+  discount        Decimal       @default(0) @db.Decimal(12, 2)
+  tax             Decimal       @default(0) @db.Decimal(12, 2)
+  total           Decimal       @default(0) @db.Decimal(12, 2)
+  paid            Decimal       @default(0) @db.Decimal(12, 2)
+  status          InvoiceStatus @default(DRAFT)
+  issuedAt        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  branch          Branch        @relation(fields: [branchId], references: [id])
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  doctorProfile   DoctorProfile? @relation(fields: [doctorProfileId], references: [id])
+  clinic          Clinic        @relation(fields: [clinicId], references: [id])
+  items           InvoiceItem[]
+  payments        Payment[]
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([patientId])
+  @@index([doctorProfileId])
+}
+
+model InvoiceItem {
+  id          String          @id @default(cuid())
+  invoiceId   String
+  serviceId   String?
+  productId   String?
+  type        InvoiceItemType
+  description String
+  quantity    Decimal         @db.Decimal(12, 2)
+  unitPrice   Decimal         @db.Decimal(12, 2)
+  total       Decimal         @db.Decimal(12, 2)
+  invoice     Invoice         @relation(fields: [invoiceId], references: [id])
+  service     Service?        @relation(fields: [serviceId], references: [id])
+  product     Product?        @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@index([serviceId])
+  @@index([productId])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  clinicId  String
+  branchId  String
+  invoiceId String?
+  patientId String
+  amount    Decimal       @db.Decimal(12, 2)
+  method    PaymentMethod
+  status    PaymentStatus @default(COMPLETED)
+  paidAt    DateTime      @default(now())
+  note      String?
+  clinic    Clinic        @relation(fields: [clinicId], references: [id])
+  branch    Branch        @relation(fields: [branchId], references: [id])
+  invoice   Invoice?      @relation(fields: [invoiceId], references: [id])
+  patient   Patient       @relation(fields: [patientId], references: [id])
+
+  @@index([clinicId])
+  @@index([branchId])
+  @@index([invoiceId])
+  @@index([patientId])
+}
+
+model Source {
+  id        String       @id @default(cuid())
+  clinicId  String
+  name      String
+  type      String?
+  status    EntityStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  clinic    Clinic       @relation(fields: [clinicId], references: [id])
+  patients  Patient[]
+
+  @@index([clinicId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  clinicId  String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  clinic    Clinic?  @relation(fields: [clinicId], references: [id])
+
+  @@index([actorId])
+  @@index([clinicId])
+  @@index([entity, entityId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
