@@ -1,9 +1,16 @@
+"use client";
+
 import { Bell, LogOut } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
 import type { Role } from "@/types/domain";
 
 export function AppShell({ role, title, description, children }: { role: Role; title: string; description?: string; children: React.ReactNode }) {
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
+    window.location.href = "/login";
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar role={role} />
@@ -18,7 +25,7 @@ export function AppShell({ role, title, description, children }: { role: Role; t
               <Button variant="ghost" aria-label="Notifications">
                 <Bell className="h-4 w-4" />
               </Button>
-              <Button variant="secondary">
+              <Button variant="secondary" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
@@ -30,4 +37,3 @@ export function AppShell({ role, title, description, children }: { role: Role; t
     </div>
   );
 }
-
